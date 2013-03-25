@@ -1,4 +1,5 @@
 (ns nurblizer.core
+  (:gen-class :name nurblizer.core)
   (:use compojure.core nurblizer.helpers)
   (:require
     [clojure.string :as str]
@@ -11,7 +12,7 @@
 ; Read in the nouns file on startup
 (def nouns
   (map (comp str/trim str/lower-case)
-       (-> (slurp "nouns.txt")
+       (-> (slurp (clojure.java.io/resource "nouns.txt"))
            (str/split #"\n"))))
 
 

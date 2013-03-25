@@ -4,7 +4,7 @@
 
 
 (defn read-template [template-file]
-  (slurp (str "src/templates/" template-file ".mustache")))
+  (slurp (clojure.java.io/resource (str "templates/" template-file ".mustache"))))
 
 ; Quick-and-dirty Mustache renderer.
 (defn render
