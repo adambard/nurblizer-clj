@@ -8,36 +8,44 @@
     [compojure.route :as route]
     [compojure.handler :as handler]))
 
-
 ; Read in the nouns file on startup
 (def nouns
-  (map (comp str/trim str/lower-case)
-       (-> (slurp (clojure.java.io/resource "nouns.txt"))
-           (str/split #"\n"))))
+  (-> (map (comp str/trim str/lower-case)
+           (-> (slurp (clojure.java.io/resource "nouns.txt"))
+               (str/split #"\n")))
+      set))
 
+(def space? #(= \space %))
+(def nonspace? (complement space?))
 
-; Nurblize function: now with recursion!
+(defn nurbalize
+  [candidate]
+  (if (contains? nouns candidate)
+    (str/upper-case candidate)
+    "<span class=\"nurble\">nurble</span>"))
+
+(defn alpha?
+  [ch]
+  (let [ch-int (int ch)]
+    (and (>= ch-int (int \a)) (<= ch-int (int \z)))))
+
 (defn nurble
-  ([text]
-  ; First run: prepare the wordlist and upper-case the text.
-   (let [words (-> text
-                   str/lower-case
-                   (str/replace #"[^a-z ]" "")
-                   (str/split #"\s"))]
-     (nurble (str/upper-case text) words)))
-
-  ([text words]
-  ; Recursively update <text> by replacing each <word> of <words> iff <word> is in nouns
-   (if (not (empty? words))
-     (let [w (first words)
-           pattern (re-pattern (str "(?i)(\\b)" w "(\\b)"))
-           replacement "$1<span class=\"nurble\">nurble</span>$2"
-           text (if (some (partial = w) nouns)
-                  (str/replace text pattern replacement)
-                  text)]
-       (recur text (rest words)))
-     (str/replace text #"\n" "<br>"))))
-
+  [text]
+  (loop [acc ""
+         rem text]
+    (let [ch (first rem)]
+      (cond
+        (nil? ch) acc
+        (space? ch) (let [[spaces tail] (split-with space? rem)
+                          next-acc      (apply str acc spaces)]
+                      (recur next-acc tail))
+        :else (let [[chars tail]  (split-with nonspace? rem)
+                    next-acc      (->> (filter alpha? chars)
+                                       (apply str)
+                                       str/lower-case
+                                       nurbalize
+                                       (str acc))]
+                (recur next-acc tail))))))
 
 ; Define handlers
 (defn index-view []
@@ -45,7 +53,6 @@
 
 (defn nurble-view [text]
   (render "nurble" {:text (nurble text)}))
-
 
 ; Routes
 (defroutes main-routes
